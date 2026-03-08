@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Flashcards
+
+AI-drivna flashcards med spaced repetition. Skapa flashcards genom att klistra in ditt studiematerial i valfri LLM (Claude, ChatGPT, etc.), importera CSV-filen, och börja plugga.
 
 ## Getting Started
 
-First, run the development server:
+En steg-för-steg-guide för att ladda ner och köra appen på en Mac. Du behöver ingen tidigare erfarenhet — följ bara stegen.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Steg 1 — Öppna Terminal
+
+Tryck `Cmd + Mellanslag`, skriv `Terminal`, tryck Enter.
+
+Alla kommandon nedan klistrar du in i Terminal och trycker Enter.
+
+### Steg 2 — Installera Homebrew
+
+Homebrew är en pakethanterare för Mac — den hjälper dig installera program via terminalen.
+
+Klistra in detta:
+
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Den kommer fråga om ditt **Mac-lösenord** (du ser inga tecken när du skriver — det är normalt). Skriv in det och tryck Enter.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Tryck Enter igen när den ber dig bekräfta installationen.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Viktigt:** När installationen är klar, kör dessa tre rader:
 
-## Learn More
+```
+echo >> ~/.zprofile
+echo 'eval "$(/opt/homebrew/bin/brew shellenv zsh)"' >> ~/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Steg 3 — Installera det som behövs
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+brew install node git gh
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Detta installerar:
+- **Node.js** — kör appen
+- **Git** — hanterar koden
+- **GitHub CLI** — kopplar ihop med GitHub
 
-## Deploy on Vercel
+### Steg 4 — Logga in på GitHub
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+gh auth login
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Du får några val — välj:
+1. `GitHub.com`
+2. `HTTPS`
+3. `Yes` (authenticate with GitHub credentials)
+4. `Login with a web browser`
+
+En kod visas i terminalen. Tryck Enter, en webbsida öppnas — klistra in koden där och logga in med ditt GitHub-konto.
+
+Om du inte har ett GitHub-konto, skapa ett gratis på https://github.com/signup först.
+
+### Steg 5 — Ladda ner och starta appen
+
+Kör dessa kommandon **en rad i taget**:
+
+```
+cd ~/Desktop
+```
+
+```
+gh repo clone viggofredriksson-lgtm/viggos-flashcard-app
+```
+
+```
+cd viggos-flashcard-app
+```
+
+```
+npm install
+```
+
+```
+npx prisma generate
+```
+
+```
+npx prisma migrate dev
+```
+
+```
+npm run dev
+```
+
+### Steg 6 — Öppna appen
+
+Gå till din webbläsare och öppna:
+
+```
+http://localhost:3000
+```
+
+Appen körs nu! Du kan stänga den genom att gå tillbaka till Terminal och trycka `Ctrl + C`.
+
+### Nästa gång du vill köra appen
+
+Du behöver bara köra dessa två kommandon:
+
+```
+cd ~/Desktop/viggos-flashcard-app
+npm run dev
+```
+
+Sen öppna `http://localhost:3000` igen.
