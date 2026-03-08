@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================
+// DECK — A collection of flashcards
+// ============================================
+// Think of this like a folder. "Biology Ch.3", "Spanish Verbs", etc.
+model Deck {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cards Card[]
+}
+
+// ============================================
+// CARD — A single flashcard (question + answer)
+// ============================================
+// This is the core of the app. Each card belongs to one deck
+// and carries all the spaced repetition data needed to schedule reviews.
+model Card {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // --- Relationship: which deck does this card belong to? ---
+  deckId String
+  deck   Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  // --- SM-2 Algorithm Fields ---
+  // These control WHEN you see the card again and HOW the interval grows.
+  //
+  // easinessFactor: How "easy" this card is for you (starts at 2.5).
+  //   Goes up when you rate it easy, down when you rate it hard.
+  //   Cards you struggle with get shown more often.
+  //
+  // interval: Days until next review. Starts at 0 (new card).
+  //   After correct answers, this grows: 1 day → 6 days → 15 days → etc.
+  //
+  // repetitions: How many times in a row you've gotten this card right.
+  //   Resets to 0 if you get it wrong.
+  easinessFactor Float    @default(2.5)
+  interval       Int      @default(0)
+  repetitions    Int      @default(0)
+  nextReviewAt   DateTime @default(now())
+
+  // --- Leitner System Fields ---
+  // The "box" system for visual progress.
+  // Box 1 = you just got it wrong or it's new (review often)
+  // Box 2-5 = you're getting better (review less often)
+  // Cards move UP a box on correct answers, DROP to box 1 on mistakes.
+  leitnerBox Int @default(1)
+
+  // --- Tags (stored as comma-separated string for simplicity) ---
+  // e.g., "biology,chapter3,midterm"
+  // We could make a separate Tag table, but for a personal app this is simpler.
+  tags String @default("")
+
+  reviews Review[]
+}
+
+// ============================================
+// REVIEW — A single review event for a card
+// ============================================
+// Every time you review a card, we log it here.
+// This gives us the data for statistics and progress tracking.
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int      // 0-5 scale (SM-2): 0=total blank, 5=perfect recall
+  reviewedAt DateTime @default(now())
+
+  // --- Relationship: which card was reviewed? ---
+  cardId String
+  card   Card   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// STUDY SESSION — A study session summary
+// ============================================
+// Tracks each time you sit down to study.
+// Used for streak tracking, daily stats, progress graphs.
+model StudySession {
+  id             String   @id @default(cuid())
+  startedAt      DateTime @default(now())
+  endedAt        DateTime?
+  cardsStudied   Int      @default(0)
+  correctCount   Int      @default(0)
+  incorrectCount Int      @default(0)
+}
