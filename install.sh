@@ -144,6 +144,11 @@ fi
 
 print_success "Appen nedladdad till skrivbordet."
 
+# Skapa .env om den saknas (filen är gitignore:ad)
+if [ ! -f "$INSTALL_DIR/.env" ]; then
+  echo 'DATABASE_URL="file:./dev.db"' > "$INSTALL_DIR/.env"
+fi
+
 # -------------------------------------------
 # Steg 4: Installera paket och databas
 # -------------------------------------------
@@ -155,7 +160,7 @@ print_success "Paket installerade."
 
 print_info "Sätter upp databasen..."
 npx prisma generate 2>/dev/null
-npx prisma migrate dev --name init 2>/dev/null || true
+npx prisma db push 2>/dev/null
 print_success "Databasen redo."
 
 # -------------------------------------------
