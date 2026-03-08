@@ -3,22 +3,24 @@
 # ===========================================
 # Flashcards — Automatisk installation (Mac)
 # ===========================================
-# Detta script installerar allt som behövs och startar appen.
+# Kräver INTE admin-rättigheter.
 # Användaren behöver bara klistra in EN rad i Terminal.
 
 set -e
 
-# Färger för output
+# Färger
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BOLD='\033[1m'
 DIM='\033[2m'
-NC='\033[0m' # No Color
+NC='\033[0m'
+
+TOTAL_STEPS=5
 
 print_step() {
   echo ""
-  echo -e "${GREEN}${BOLD}[$1/6]${NC} ${BOLD}$2${NC}"
+  echo -e "${GREEN}${BOLD}[$1/$TOTAL_STEPS]${NC} ${BOLD}$2${NC}"
   echo ""
 }
 
@@ -34,7 +36,6 @@ print_error() {
   echo -e "  ${RED}✗${NC} $1"
 }
 
-# Fånga fel och visa vänligt meddelande istället för att bara avsluta
 trap 'echo ""; print_error "Något gick fel. Kopiera texten ovanför och skicka till Viggo så hjälper han dig."; exit 1' ERR
 
 echo ""
@@ -42,8 +43,8 @@ echo -e "${BOLD}╔════════════════════�
 echo -e "${BOLD}║     Flashcards — Installation        ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════╝${NC}"
 echo ""
-echo -e "  ${DIM}Installationen tar ca 5-10 minuter.${NC}"
-echo -e "  ${DIM}Du kan behöva skriva ditt Mac-lösenord en gång.${NC}"
+echo -e "  ${DIM}Installationen tar ca 3-5 minuter.${NC}"
+echo -e "  ${DIM}Inget lösenord behövs.${NC}"
 
 # -------------------------------------------
 # Steg 1: Xcode Command Line Tools
@@ -56,10 +57,8 @@ else
   print_info "En popup dyker upp strax — klicka 'Install' och vänta."
   print_info "Det här steget kan ta 5-10 minuter. Det är helt normalt."
 
-  # Trigger installation
   xcode-select --install 2>/dev/null || true
 
-  # Wait for installation to complete
   print_info "Väntar på att installationen ska bli klar..."
   while ! xcode-select -p &>/dev/null; do
     sleep 5
@@ -68,71 +67,68 @@ else
 fi
 
 # -------------------------------------------
-# Steg 2: Homebrew
+# Steg 2: Node.js (direkt, utan Homebrew)
 # -------------------------------------------
-print_step 2 "Kollar Homebrew..."
+print_step 2 "Kollar Node.js..."
 
-if command -v brew &>/dev/null; then
-  print_success "Redan installerat."
+# Kolla alla ställen Node kan finnas
+NODE_CMD=""
+if command -v node &>/dev/null; then
+  NODE_CMD="node"
+elif [ -f "$HOME/.local/node/bin/node" ]; then
+  export PATH="$HOME/.local/node/bin:$PATH"
+  NODE_CMD="node"
+elif [ -f /opt/homebrew/bin/node ]; then
+  export PATH="/opt/homebrew/bin:$PATH"
+  NODE_CMD="node"
+elif [ -f /usr/local/bin/node ]; then
+  NODE_CMD="/usr/local/bin/node"
+fi
+
+if [ -n "$NODE_CMD" ] && command -v node &>/dev/null; then
+  print_success "Redan installerat ($(node --version))."
 else
-  # Check if brew exists but isn't in PATH
-  if [ -f /opt/homebrew/bin/brew ]; then
-    print_info "Homebrew finns men saknas i PATH. Fixar..."
-    eval "$(/opt/homebrew/bin/brew shellenv)"
+  print_info "Installerar Node.js..."
+
+  # Bestäm arkitektur (Apple Silicon vs Intel)
+  ARCH=$(uname -m)
+  if [ "$ARCH" = "arm64" ]; then
+    NODE_ARCH="arm64"
   else
-    echo ""
-    echo -e "  ${YELLOW}${BOLD}OBS: Du kommer att behöva skriva ditt Mac-lösenord.${NC}"
-    echo -e "  ${YELLOW}När du skriver syns ingenting — inga prickar, ingenting.${NC}"
-    echo -e "  ${YELLOW}Det är normalt! Skriv lösenordet och tryck Enter.${NC}"
-    echo ""
-
-    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-    # Add to PATH for this session and permanently
-    if [ -f /opt/homebrew/bin/brew ]; then
-      eval "$(/opt/homebrew/bin/brew shellenv)"
-    fi
+    NODE_ARCH="x64"
   fi
 
-  # Make sure brew is in PATH permanently
-  SHELL_PROFILE=""
-  if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "/bin/zsh" ]; then
-    SHELL_PROFILE="$HOME/.zprofile"
-  else
+  NODE_VERSION="v22.14.0"
+  NODE_URL="https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-darwin-${NODE_ARCH}.tar.gz"
+  NODE_DIR="$HOME/.local/node"
+
+  # Ladda ner och packa upp till ~/.local/node
+  mkdir -p "$HOME/.local"
+  print_info "Laddar ner Node.js ${NODE_VERSION}..."
+  curl -sL "$NODE_URL" | tar -xz -C "$HOME/.local"
+  rm -rf "$NODE_DIR"
+  mv "$HOME/.local/node-${NODE_VERSION}-darwin-${NODE_ARCH}" "$NODE_DIR"
+
+  export PATH="$HOME/.local/node/bin:$PATH"
+
+  # Lägg till i PATH permanent
+  SHELL_PROFILE="$HOME/.zprofile"
+  if [ "$SHELL" != "/bin/zsh" ] && [ -z "$ZSH_VERSION" ]; then
     SHELL_PROFILE="$HOME/.bash_profile"
   fi
 
-  if ! grep -q "brew shellenv" "$SHELL_PROFILE" 2>/dev/null; then
+  if ! grep -q '.local/node/bin' "$SHELL_PROFILE" 2>/dev/null; then
     echo >> "$SHELL_PROFILE"
-    echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$SHELL_PROFILE"
+    echo 'export PATH="$HOME/.local/node/bin:$PATH"' >> "$SHELL_PROFILE"
   fi
 
-  if command -v brew &>/dev/null; then
-    print_success "Homebrew installerat."
-  else
-    print_error "Kunde inte installera Homebrew."
-    print_info "Stäng Terminal, öppna den igen, och kör samma kommando en gång till."
-    exit 1
-  fi
-fi
-
-# -------------------------------------------
-# Steg 3: Node.js
-# -------------------------------------------
-print_step 3 "Kollar Node.js..."
-
-if command -v node &>/dev/null; then
-  print_success "Redan installerat ($(node --version))."
-else
-  print_info "Installerar Node.js (kan ta en minut)..."
-  brew install node 2>&1 | tail -3
   print_success "Node.js installerat ($(node --version))."
 fi
 
 # -------------------------------------------
-# Steg 4: Ladda ner appen
+# Steg 3: Ladda ner appen
 # -------------------------------------------
-print_step 4 "Laddar ner appen..."
+print_step 3 "Laddar ner appen..."
 
 INSTALL_DIR="$HOME/Desktop/viggos-flashcard-app"
 
@@ -142,19 +138,19 @@ if [ -d "$INSTALL_DIR" ]; then
   git pull origin main 2>/dev/null || true
 else
   print_info "Laddar ner från internet..."
-  git clone --quiet https://github.com/viggofredriksson-lgtm/viggos-flashcard-app.git "$INSTALL_DIR"
+  git clone --quiet --depth 1 https://github.com/viggofredriksson-lgtm/viggos-flashcard-app.git "$INSTALL_DIR"
   cd "$INSTALL_DIR"
 fi
 
 print_success "Appen nedladdad till skrivbordet."
 
 # -------------------------------------------
-# Steg 5: Installera dependencies och databas
+# Steg 4: Installera paket och databas
 # -------------------------------------------
-print_step 5 "Installerar allt appen behöver..."
+print_step 4 "Installerar allt appen behöver..."
 
-print_info "Installerar paket (kan ta en minut)..."
-npm install --loglevel=error 2>&1 | tail -1
+print_info "Installerar paket..."
+npm ci --loglevel=error 2>&1 | tail -1
 print_success "Paket installerade."
 
 print_info "Sätter upp databasen..."
@@ -163,18 +159,16 @@ npx prisma migrate dev --name init 2>/dev/null || true
 print_success "Databasen redo."
 
 # -------------------------------------------
-# Steg 6: Skapa startscript
+# Steg 5: Skapa genväg på skrivbordet
 # -------------------------------------------
-print_step 6 "Skapar genväg på skrivbordet..."
+print_step 5 "Skapar genväg på skrivbordet..."
 
-# Create a robust start script
 cat > "$HOME/Desktop/starta-flashcards.command" << 'STARTSCRIPT'
 #!/bin/bash
 clear
 
 APP_DIR="$HOME/Desktop/viggos-flashcard-app"
 
-# Kolla att mappen finns
 if [ ! -d "$APP_DIR" ]; then
   echo ""
   echo "Appen hittades inte!"
@@ -189,6 +183,9 @@ fi
 cd "$APP_DIR"
 
 # Se till att node/npm finns i PATH
+if [ -d "$HOME/.local/node/bin" ]; then
+  export PATH="$HOME/.local/node/bin:$PATH"
+fi
 if [ -f /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
@@ -201,7 +198,7 @@ if ! command -v npm &>/dev/null; then
   exit 1
 fi
 
-# Kolla om port 3000 redan är upptagen
+# Kolla om appen redan är igång
 if lsof -i :3000 &>/dev/null; then
   echo ""
   echo "Appen verkar redan vara igång!"
@@ -237,8 +234,6 @@ npm run dev 2>&1
 STARTSCRIPT
 
 chmod +x "$HOME/Desktop/starta-flashcards.command"
-
-# Ta bort Gatekeeper-flaggan så macOS inte blockerar filen
 xattr -d com.apple.quarantine "$HOME/Desktop/starta-flashcards.command" 2>/dev/null || true
 
 print_success "Genväg skapad: 'starta-flashcards' på skrivbordet."
@@ -256,7 +251,6 @@ echo -e "  Dubbelklicka ${BOLD}'starta-flashcards'${NC} på skrivbordet."
 echo -e "  Webbläsaren öppnas automatiskt."
 echo ""
 
-# Ask if they want to start now
 read -p "  Vill du starta appen nu? (j/n) " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[JjYy]$ ]]; then
