@@ -13,6 +13,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BOLD='\033[1m'
+DIM='\033[2m'
 NC='\033[0m' # No Color
 
 print_step() {
@@ -22,7 +23,7 @@ print_step() {
 }
 
 print_info() {
-  echo -e "  ${YELLOW}→${NC} $1"
+  echo -e "  ${YELLOW}>${NC} $1"
 }
 
 print_success() {
@@ -33,32 +34,37 @@ print_error() {
   echo -e "  ${RED}✗${NC} $1"
 }
 
+# Fånga fel och visa vänligt meddelande istället för att bara avsluta
+trap 'echo ""; print_error "Något gick fel. Kopiera texten ovanför och skicka till Viggo så hjälper han dig."; exit 1' ERR
+
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════╗${NC}"
 echo -e "${BOLD}║     Flashcards — Installation        ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════╝${NC}"
 echo ""
+echo -e "  ${DIM}Installationen tar ca 5-10 minuter.${NC}"
+echo -e "  ${DIM}Du kan behöva skriva ditt Mac-lösenord en gång.${NC}"
 
 # -------------------------------------------
 # Steg 1: Xcode Command Line Tools
 # -------------------------------------------
-print_step 1 "Kollar Xcode Command Line Tools..."
+print_step 1 "Kollar utvecklarverktyg..."
 
 if xcode-select -p &>/dev/null; then
   print_success "Redan installerat."
 else
-  print_info "Installerar Xcode Command Line Tools..."
-  print_info "En popup kan dyka upp — klicka 'Install' och vänta."
+  print_info "En popup dyker upp strax — klicka 'Install' och vänta."
+  print_info "Det här steget kan ta 5-10 minuter. Det är helt normalt."
 
   # Trigger installation
   xcode-select --install 2>/dev/null || true
 
   # Wait for installation to complete
   print_info "Väntar på att installationen ska bli klar..."
-  until xcode-select -p &>/dev/null; do
+  while ! xcode-select -p &>/dev/null; do
     sleep 5
   done
-  print_success "Xcode Command Line Tools installerat."
+  print_success "Utvecklarverktyg installerat."
 fi
 
 # -------------------------------------------
@@ -74,7 +80,12 @@ else
     print_info "Homebrew finns men saknas i PATH. Fixar..."
     eval "$(/opt/homebrew/bin/brew shellenv)"
   else
-    print_info "Installerar Homebrew (du kan behöva skriva ditt Mac-lösenord)..."
+    echo ""
+    echo -e "  ${YELLOW}${BOLD}OBS: Du kommer att behöva skriva ditt Mac-lösenord.${NC}"
+    echo -e "  ${YELLOW}När du skriver syns ingenting — inga prickar, ingenting.${NC}"
+    echo -e "  ${YELLOW}Det är normalt! Skriv lösenordet och tryck Enter.${NC}"
+    echo ""
+
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
     # Add to PATH for this session and permanently
@@ -94,13 +105,13 @@ else
   if ! grep -q "brew shellenv" "$SHELL_PROFILE" 2>/dev/null; then
     echo >> "$SHELL_PROFILE"
     echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$SHELL_PROFILE"
-    print_info "Homebrew tillagt i $SHELL_PROFILE"
   fi
 
   if command -v brew &>/dev/null; then
     print_success "Homebrew installerat."
   else
-    print_error "Kunde inte installera Homebrew. Starta om Terminal och kör scriptet igen."
+    print_error "Kunde inte installera Homebrew."
+    print_info "Stäng Terminal, öppna den igen, och kör samma kommando en gång till."
     exit 1
   fi
 fi
@@ -111,11 +122,10 @@ fi
 print_step 3 "Kollar Node.js..."
 
 if command -v node &>/dev/null; then
-  NODE_VERSION=$(node --version)
-  print_success "Redan installerat ($NODE_VERSION)."
+  print_success "Redan installerat ($(node --version))."
 else
-  print_info "Installerar Node.js..."
-  brew install node
+  print_info "Installerar Node.js (kan ta en minut)..."
+  brew install node 2>&1 | tail -3
   print_success "Node.js installerat ($(node --version))."
 fi
 
@@ -131,20 +141,21 @@ if [ -d "$INSTALL_DIR" ]; then
   cd "$INSTALL_DIR"
   git pull origin main 2>/dev/null || true
 else
-  print_info "Klonar från GitHub..."
-  git clone https://github.com/viggofredriksson-lgtm/viggos-flashcard-app.git "$INSTALL_DIR"
+  print_info "Laddar ner från internet..."
+  git clone --quiet https://github.com/viggofredriksson-lgtm/viggos-flashcard-app.git "$INSTALL_DIR"
   cd "$INSTALL_DIR"
 fi
 
-print_success "Appen nedladdad till Desktop."
+print_success "Appen nedladdad till skrivbordet."
 
 # -------------------------------------------
 # Steg 5: Installera dependencies och databas
 # -------------------------------------------
-print_step 5 "Installerar dependencies..."
+print_step 5 "Installerar allt appen behöver..."
 
+print_info "Installerar paket (kan ta en minut)..."
 npm install --loglevel=error 2>&1 | tail -1
-print_success "Dependencies installerade."
+print_success "Paket installerade."
 
 print_info "Sätter upp databasen..."
 npx prisma generate 2>/dev/null
@@ -154,32 +165,83 @@ print_success "Databasen redo."
 # -------------------------------------------
 # Steg 6: Skapa startscript
 # -------------------------------------------
-print_step 6 "Skapar genvägar..."
+print_step 6 "Skapar genväg på skrivbordet..."
 
-# Create a simple start script on the Desktop
+# Create a robust start script
 cat > "$HOME/Desktop/starta-flashcards.command" << 'STARTSCRIPT'
 #!/bin/bash
-cd ~/Desktop/viggos-flashcard-app
+clear
 
-# Make sure brew is available
+APP_DIR="$HOME/Desktop/viggos-flashcard-app"
+
+# Kolla att mappen finns
+if [ ! -d "$APP_DIR" ]; then
+  echo ""
+  echo "Appen hittades inte!"
+  echo "Kör installationen igen genom att klistra in detta i Terminal:"
+  echo ""
+  echo '  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/viggofredriksson-lgtm/viggos-flashcard-app/main/install.sh)"'
+  echo ""
+  read -p "Tryck Enter för att stänga..." -r
+  exit 1
+fi
+
+cd "$APP_DIR"
+
+# Se till att node/npm finns i PATH
 if [ -f /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
+if ! command -v npm &>/dev/null; then
+  echo ""
+  echo "Node.js hittades inte. Kör installationen igen."
+  echo ""
+  read -p "Tryck Enter för att stänga..." -r
+  exit 1
+fi
+
+# Kolla om port 3000 redan är upptagen
+if lsof -i :3000 &>/dev/null; then
+  echo ""
+  echo "Appen verkar redan vara igång!"
+  echo "Öppnar webbläsaren..."
+  open http://localhost:3000
+  echo ""
+  read -p "Tryck Enter för att stänga detta fönster..." -r
+  exit 0
+fi
+
 echo ""
-echo "Startar Flashcards..."
-echo "Öppna http://localhost:3000 i din webbläsare."
-echo "Tryck Ctrl+C här för att stänga appen."
+echo "══════════════════════════════════════"
+echo "  Flashcards startar...              "
+echo "══════════════════════════════════════"
+echo ""
+echo "  Webbläsaren öppnas automatiskt."
+echo ""
+echo "  FÖR ATT STÄNGA APPEN:"
+echo "  Stäng bara det här fönstret."
+echo ""
+echo "══════════════════════════════════════"
 echo ""
 
-# Open browser after a short delay
-(sleep 3 && open http://localhost:3000) &
+# Öppna webbläsaren när servern är redo
+(
+  while ! curl -s http://localhost:3000 >/dev/null 2>&1; do
+    sleep 1
+  done
+  open http://localhost:3000
+) &
 
-npm run dev
+npm run dev 2>&1
 STARTSCRIPT
 
 chmod +x "$HOME/Desktop/starta-flashcards.command"
-print_success "Genväg skapad på Desktop: 'starta-flashcards'"
+
+# Ta bort Gatekeeper-flaggan så macOS inte blockerar filen
+xattr -d com.apple.quarantine "$HOME/Desktop/starta-flashcards.command" 2>/dev/null || true
+
+print_success "Genväg skapad: 'starta-flashcards' på skrivbordet."
 
 # -------------------------------------------
 # Klart!
@@ -189,11 +251,9 @@ echo -e "${GREEN}${BOLD}╔═════════════════�
 echo -e "${GREEN}${BOLD}║        Installation klar!            ║${NC}"
 echo -e "${GREEN}${BOLD}╚══════════════════════════════════════╝${NC}"
 echo ""
-echo -e "  ${BOLD}Starta appen:${NC}"
-echo -e "  Dubbelklicka på ${BOLD}'starta-flashcards'${NC} på skrivbordet."
-echo ""
-echo -e "  ${BOLD}Eller kör i Terminal:${NC}"
-echo -e "  cd ~/Desktop/viggos-flashcard-app && npm run dev"
+echo -e "  ${BOLD}Nästa gång du vill plugga:${NC}"
+echo -e "  Dubbelklicka ${BOLD}'starta-flashcards'${NC} på skrivbordet."
+echo -e "  Webbläsaren öppnas automatiskt."
 echo ""
 
 # Ask if they want to start now
@@ -201,7 +261,12 @@ read -p "  Vill du starta appen nu? (j/n) " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[JjYy]$ ]]; then
   echo ""
-  print_info "Startar appen och öppnar webbläsaren..."
-  (sleep 3 && open http://localhost:3000) &
+  print_info "Startar appen..."
+  (
+    while ! curl -s http://localhost:3000 >/dev/null 2>&1; do
+      sleep 1
+    done
+    open http://localhost:3000
+  ) &
   npm run dev
 fi
