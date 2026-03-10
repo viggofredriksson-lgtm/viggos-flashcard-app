@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { DeleteDeckButton } from "./delete-deck-button";
 
 export const dynamic = "force-dynamic";
 
@@ -56,9 +57,12 @@ export default async function DecksPage() {
                 href={`/study?deck=${deck.id}`}
                 className="group rounded-2xl border border-cream-dark/60 bg-white/80 backdrop-blur-sm p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-green/30"
               >
-                <h2 className="mb-1 text-lg font-bold text-black group-hover:text-green transition-colors">
-                  {deck.name}
-                </h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="mb-1 text-lg font-bold text-black group-hover:text-green transition-colors">
+                    {deck.name}
+                  </h2>
+                  <DeleteDeckButton deckId={deck.id} deckName={deck.name} />
+                </div>
                 {deck.description && (
                   <p className="mb-3 text-sm text-gray">{deck.description}</p>
                 )}

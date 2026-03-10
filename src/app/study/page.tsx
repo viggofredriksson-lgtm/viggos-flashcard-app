@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -19,6 +19,20 @@ interface SessionStats {
 }
 
 export default function StudyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cream-dark border-t-green" />
+        </div>
+      }
+    >
+      <StudyContent />
+    </Suspense>
+  );
+}
+
+function StudyContent() {
   const searchParams = useSearchParams();
   const deckId = searchParams.get("deck") || undefined;
 

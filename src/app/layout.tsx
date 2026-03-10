@@ -37,6 +37,12 @@ export default function RootLayout({
                 Plugga
               </Link>
               <Link
+                href="/oral"
+                className="rounded-full px-4 py-1.5 text-gray transition-all hover:bg-green-light hover:text-green"
+              >
+                Förhör
+              </Link>
+              <Link
                 href="/decks"
                 className="rounded-full px-4 py-1.5 text-gray transition-all hover:bg-green-light hover:text-green"
               >

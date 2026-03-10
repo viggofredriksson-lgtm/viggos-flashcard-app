@@ -22,19 +22,20 @@ export const FLASHCARD_PROMPT = `Du är en expert på inlärning och flashcard-s
    - \`answer\` — baksidan av kortet
    - \`tags\` — kommaseparerade taggar för kategorisering (t.ex. "biologi,kapitel3,proteiner")
    - \`deck\` — decknamnet som kortet tillhör
+   - \`keywords\` — 3-6 nyckelord/nyckelfraser från svaret, kommaseparerade. Dessa används i appens muntliga förhörsläge för att bedöma om användaren kan ämnet. Välj de viktigaste begreppen som visar att man förstår svaret.
 
 ## CSV-formatregler
 - Använd dubbla citattecken runt alla fältvärden
-- Separera taggar med komman inuti citattecknen (t.ex. "biologi,proteiner")
-- Första raden måste vara headern: question,answer,tags,deck
+- Separera taggar och keywords med komman inuti citattecknen (t.ex. "biologi,proteiner")
+- Första raden måste vara headern: question,answer,tags,deck,keywords
 - Använd UTF-8-kodning
 
 ## Exempeloutput
 
 \`\`\`csv
-question,answer,tags,deck
-"Vad är cellens kraftverk?","Mitokondrien — den producerar ATP genom cellulär respiration, och omvandlar glukos och syre till användbar energi.","biologi,celler,organeller","Biologi 101"
-"Varför har mitokondrier eget DNA?","Mitokondrier var troligtvis en gång frilevande bakterier som ingick ett symbiotiskt förhållande med tidiga celler (endosymbiontteorin). De behöll sitt eget DNA från det ursprunget.","biologi,celler,evolution","Biologi 101"
+question,answer,tags,deck,keywords
+"Vad är cellens kraftverk?","Mitokondrien — den producerar ATP genom cellulär respiration, och omvandlar glukos och syre till användbar energi.","biologi,celler,organeller","Biologi 101","mitokondrien,ATP,cellulär respiration,glukos,energi"
+"Varför har mitokondrier eget DNA?","Mitokondrier var troligtvis en gång frilevande bakterier som ingick ett symbiotiskt förhållande med tidiga celler (endosymbiontteorin). De behöll sitt eget DNA från det ursprunget.","biologi,celler,evolution","Biologi 101","frilevande bakterier,symbiotiskt förhållande,endosymbiontteorin,eget DNA"
 \`\`\`
 
 ## Studiematerial

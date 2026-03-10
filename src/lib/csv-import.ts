@@ -12,6 +12,7 @@ interface CsvRow {
   answer: string;
   tags: string;
   deck: string;
+  keywords: string;
 }
 
 // Result type so the caller knows what happened
@@ -26,12 +27,13 @@ export interface ImportResult {
 /**
  * Parses a CSV string into rows of key-value pairs.
  *
- * Handles quoted fields (including commas inside quotes) and trims whitespace.
- * This is a simple parser — it doesn't handle escaped quotes inside quotes
- * or multiline fields, but those shouldn't appear in LLM-generated flashcards.
+ * Handles quoted fields correctly — including commas and newlines inside
+ * quotes. LLM-generated CSVs often have multi-line answers wrapped in
+ * quotes, so we can't just split on \n. Instead we split the CSV into
+ * logical lines first (respecting quoted fields), then parse each one.
  */
 export function parseCsv(csvText: string): CsvRow[] {
-  const lines = csvText.trim().split("\n");
+  const lines = splitCsvIntoLines(csvText.trim());
 
   if (lines.length < 2) {
     throw new Error("CSV must have a header row and at least one data row.");
@@ -45,7 +47,7 @@ export function parseCsv(csvText: string): CsvRow[] {
   for (const col of requiredColumns) {
     if (!headers.includes(col)) {
       throw new Error(
-        `Missing required column: "${col}". Expected columns: question, answer, tags, deck`
+        `Missing required column: "${col}". Expected columns: question, answer, tags, deck, keywords`
       );
     }
   }
@@ -70,12 +72,62 @@ export function parseCsv(csvText: string): CsvRow[] {
         headers.indexOf("deck") !== -1
           ? values[headers.indexOf("deck")]?.trim() || ""
           : "Default",
+      keywords:
+        headers.indexOf("keywords") !== -1
+          ? values[headers.indexOf("keywords")]?.trim() || ""
+          : "",
     };
 
     rows.push(row);
   }
 
   return rows;
+}
+
+/**
+ * Splits CSV text into logical lines, respecting quoted fields.
+ *
+ * A newline inside a quoted field is NOT a row break — it's part of the
+ * field value. We track whether we're inside quotes and only break rows
+ * when we hit a newline outside of quotes.
+ *
+ * Example: "line1\nstill line1","field2"  →  one logical line
+ */
+function splitCsvIntoLines(text: string): string[] {
+  const lines: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+
+    if (char === '"') {
+      // Handle escaped quotes ""
+      if (inQuotes && i + 1 < text.length && text[i + 1] === '"') {
+        current += '""';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+        current += char;
+      }
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      // Skip \r in \r\n
+      if (char === "\r" && i + 1 < text.length && text[i + 1] === "\n") {
+        i++;
+      }
+      lines.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  // Don't forget the last line
+  if (current) {
+    lines.push(current);
+  }
+
+  return lines;
 }
 
 /**
@@ -185,6 +237,7 @@ export async function importCards(csvText: string): Promise<ImportResult[]> {
             question: row.question,
             answer: row.answer,
             tags: row.tags,
+            keywords: row.keywords,
             deckId: deck.id,
           },
         });
