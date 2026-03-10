@@ -17,7 +17,7 @@ AI-drivna flashcards med spaced repetition. Skapa flashcards genom att klistra i
 Öppna PowerShell (`Win + X`, välj "PowerShell") och klistra in detta:
 
 ```
-irm https://raw.githubusercontent.com/viggofredriksson-lgtm/viggos-flashcard-app/main/install.ps1 | iex
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/viggofredriksson-lgtm/viggos-flashcard-app/main/install.ps1 | iex"
 ```
 
 ### Starta appen efteråt

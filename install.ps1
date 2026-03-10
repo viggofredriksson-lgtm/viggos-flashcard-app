@@ -4,15 +4,6 @@
 # Användaren klistrar in EN rad i PowerShell:
 #   irm https://raw.githubusercontent.com/viggofredriksson-lgtm/viggos-flashcard-app/main/install.ps1 | iex
 
-# Fix execution policy automatiskt om den blockerar
-# (CurrentUser-scope påverkar bara denna användare, inget admin-behövs)
-try {
-    $policy = Get-ExecutionPolicy -Scope CurrentUser
-    if ($policy -eq "Restricted" -or $policy -eq "AllSigned") {
-        Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
-    }
-} catch {}
-
 $ErrorActionPreference = "Stop"
 
 # Färger

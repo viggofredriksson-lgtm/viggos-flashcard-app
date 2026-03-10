@@ -5,7 +5,7 @@ import { useState } from "react";
 type Platform = "mac" | "windows";
 
 const MAC_COMMAND = `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/viggofredriksson-lgtm/viggos-flashcard-app/main/install.sh)"`;
-const WINDOWS_COMMAND = `irm https://raw.githubusercontent.com/viggofredriksson-lgtm/viggos-flashcard-app/main/install.ps1 | iex`;
+const WINDOWS_COMMAND = `powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/viggofredriksson-lgtm/viggos-flashcard-app/main/install.ps1 | iex"`;
 
 const TUTORIALS: Record<
   Platform,
