@@ -152,12 +152,16 @@ if (-not (Test-Path "$INSTALL_DIR\.env")) {
 Print-Step 3 "Installerar allt appen behover..."
 
 Print-Info "Installerar paket..."
-npm ci --loglevel=error 2>&1 | Select-Object -Last 1
+$ErrorActionPreference = "Continue"
+npm ci --loglevel=error 2>&1 | Out-Null
+$ErrorActionPreference = "Stop"
 Print-Success "Paket installerade."
 
 Print-Info "Satter upp databasen..."
-npx prisma generate 2>$null | Out-Null
-npx prisma db push 2>$null | Out-Null
+$ErrorActionPreference = "Continue"
+npx prisma generate 2>&1 | Out-Null
+npx prisma db push 2>&1 | Out-Null
+$ErrorActionPreference = "Stop"
 Print-Success "Databasen redo."
 
 # -------------------------------------------
