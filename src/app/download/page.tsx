@@ -9,7 +9,7 @@ const WINDOWS_COMMAND = `irm https://raw.githubusercontent.com/viggofredriksson-
 
 const TUTORIALS: Record<
   Platform,
-  { terminal: string; openInstructions: string; steps: string[]; note?: string }
+  { terminal: string; openInstructions: string; steps: string[] }
 > = {
   mac: {
     terminal: "Terminal",
@@ -34,14 +34,12 @@ const TUTORIALS: Record<
       "Vänta tills installationen är klar (3-5 min). Allt sker automatiskt.",
       "Klart! Du har nu en genväg på skrivbordet: \"starta-flashcards\". Dubbelklicka på den varje gång du vill plugga.",
     ],
-    note: "Om du får ett felmeddelande om \"execution policy\", kör detta först och tryck Enter:\nSet-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned",
   },
 };
 
 export default function DownloadPage() {
   const [platform, setPlatform] = useState<Platform>("mac");
   const [copied, setCopied] = useState(false);
-  const [noteCopied, setNoteCopied] = useState(false);
 
   const tutorial = TUTORIALS[platform];
   const command = platform === "mac" ? MAC_COMMAND : WINDOWS_COMMAND;
@@ -50,15 +48,6 @@ export default function DownloadPage() {
     await navigator.clipboard.writeText(command);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }
-
-  async function copyNote() {
-    if (!tutorial.note) return;
-    await navigator.clipboard.writeText(
-      "Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned"
-    );
-    setNoteCopied(true);
-    setTimeout(() => setNoteCopied(false), 2000);
   }
 
   return (
@@ -131,29 +120,6 @@ export default function DownloadPage() {
           ))}
         </ol>
       </div>
-
-      {/* OBS för Windows */}
-      {tutorial.note && (
-        <div className="mb-6 rounded-2xl border border-cream-dark/60 bg-gradient-to-r from-cream to-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-black mb-2">
-            Får du ett felmeddelande?
-          </p>
-          <p className="text-sm text-gray mb-3">
-            Om PowerShell klagar på &quot;execution policy&quot;, kör detta kommando först:
-          </p>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-lg bg-cream-dark/50 px-3 py-2 text-xs text-black font-mono">
-              Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-            </code>
-            <button
-              onClick={copyNote}
-              className="shrink-0 rounded-lg bg-white border border-cream-dark px-3 py-2 text-xs font-semibold text-gray transition-all hover:border-green/30"
-            >
-              {noteCopied ? "Kopierat!" : "Kopiera"}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Kommando */}
       <div className="rounded-2xl border border-cream-dark/60 bg-white/80 backdrop-blur-sm p-6 shadow-sm">

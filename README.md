@@ -20,9 +20,6 @@ AI-drivna flashcards med spaced repetition. Skapa flashcards genom att klistra i
 irm https://raw.githubusercontent.com/viggofredriksson-lgtm/viggos-flashcard-app/main/install.ps1 | iex
 ```
 
-> **OBS:** Om du får ett felmeddelande om execution policy, kör detta först:
-> `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
-
 ### Starta appen efteråt
 
 Dubbelklicka på **starta-flashcards** på skrivbordet.
