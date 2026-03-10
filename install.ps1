@@ -83,8 +83,20 @@ if (-not $nodeInstalled) {
     if (Test-Path $TEMP_EXTRACT) { Remove-Item -Recurse -Force $TEMP_EXTRACT }
     Expand-Archive -Path $TEMP_ZIP -DestinationPath $TEMP_EXTRACT
 
+    # Hitta den uppackade mappen (namnet kan variera)
+    $extractedFolder = Get-ChildItem -Path $TEMP_EXTRACT -Directory | Select-Object -First 1
+    if (-not $extractedFolder) {
+        Print-Error "Kunde inte packa upp Node.js."
+        Read-Host "Tryck Enter for att stanga"
+        exit 1
+    }
+
+    # Skapa .local-mappen om den inte finns
+    $localDir = Split-Path $NODE_DIR
+    if (-not (Test-Path $localDir)) { New-Item -ItemType Directory -Path $localDir -Force | Out-Null }
+
     if (Test-Path $NODE_DIR) { Remove-Item -Recurse -Force $NODE_DIR }
-    Move-Item "$TEMP_EXTRACT\node-$NODE_VERSION-win-x64" $NODE_DIR
+    Move-Item $extractedFolder.FullName $NODE_DIR
 
     Remove-Item $TEMP_ZIP -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force $TEMP_EXTRACT -ErrorAction SilentlyContinue
